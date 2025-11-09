@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تقارير المبيعات</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .admin-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .admin-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .form-section, .admin-section {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .file-upload {
+            border: 2px dashed #667eea;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            background: #f0f4ff;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .password-input {
+            margin: 20px 0;
+        }
+        
+        .filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .reports-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .reports-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .reports-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .totals {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .image-preview {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            float: left;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-btn {
+                position: static;
+                margin-top: 10px;
+                width: 100%;
+            }
+            
+            .header {
+                text-align: center;
+                padding: 15px;
+            }
+            
+            .row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>نظام تقارير المبيعات</h1>
+            <button class="admin-btn" onclick="openAdminLogin()">الإدارة</button>
+        </div>
+
+        <!-- Form Section -->
+        <div id="formSection" class="form-section">
+            <h2 style="margin-bottom: 25px; color: #333;">إدخال تقرير المبيعات</h2>
+            
+            <form id="salesForm">
+                <div class="row">
+                    <div class="form-group">
+                        <label for="employeeName">اسم الموظف</label>
+                        <input type="text" id="employeeName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="branch">اسم الفرع</label>
+                        <select id="branch" required>
+                            <option value="">اختر الفرع</option>
+                            <option value="الفرع الرئيسي">الفرع الرئيسي</option>
+                            <option value="فرع المطار">فرع المطار</option>
+                            <option value="فرع الجامعة">فرع الجامعة</option>
+                            <option value="فرع السوق">فرع السوق</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label for="cashRevenue">الكاش (إيرادات الكاش)</label>
+                        <input type="number" id="cashRevenue" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="networkRevenue">الشبكة (إيرادات الشبكة)</label>
+                        <input type="number" id="networkRevenue" step="0.01" required>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label for="currentCash">إجمالي الكاش الحالي في الفرع</label>
+                        <input type="number" id="currentCash" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profit">Profit (الربح)</label>
+                        <input type="number" id="profit" step="0.01" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>رفع صورة الموازنة</label>
+                    <div class="file-upload" onclick="document.getElementById('balanceImage').click()">
+                        <p>📷 اضغط لاختيار صورة</p>
+                        <input type="file" id="balanceImage" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                    </div>
+                    <div id="imagePreview"></div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button type="submit" class="btn">إرسال التقرير</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearForm()">مسح البيانات</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="adminSection" class="admin-section hidden">
+            <button class="btn logout-btn" onclick="logout()">تسجيل الخروج</button>
+            <h2 style="margin-bottom: 25px; color: #333;">لوحة الإدارة - تقارير المبيعات</h2>
+            
+            <div class="filters">
+                <h3 style="margin-bottom: 15px;">فلاتر البحث</h3>
+                <div class="filter-row">
+                    <div class="form-group">
+                        <label for="filterStartDate">من تاريخ</label>
+                        <input type="date" id="filterStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterEndDate">إلى تاريخ</label>
+                        <input type="date" id="filterEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterBranch">الفرع</label>
+                        <select id="filterBranch">
+                            <option value="">جميع الفروع</option>
+                            <option value="الفرع الرئيسي">الفرع الرئيسي</option>
+                            <option value="فرع المطار">فرع المطار</option>
+                            <option value="فرع الجامعة">فرع الجامعة</option>
+                            <option value="فرع السوق">فرع السوق</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterEmployee">الموظف</label>
+                        <input type="text" id="filterEmployee" placeholder="اسم الموظف">
+                    </div>
+                </div>
+                <button class="btn" onclick="applyFilters()">استعرض النتائج</button>
+                <button class="btn btn-secondary" onclick="resetFilters()">إعادة تعيين</button>
+                <button class="btn" onclick="exportToExcel()">تصدير إلى Excel</button>
+            </div>
+            
+            <div id="totals" class="totals hidden">
+                <h4>إجماليات الفلاتر المطبقة:</h4>
+                <p id="totalCash">إجمالي الكاش: 0</p>
+                <p id="totalNetwork">إجمالي الشبكة: 0</p>
+                <p id="totalProfit">إجمالي الربح: 0</p>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="reports-table">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الوقت</th>
+                            <th>اسم الموظف</th>
+                            <th>الفرع</th>
+                            <th>الكاش</th>
+                            <th>الشبكة</th>
+                            <th>الكاش الحالي</th>
+                            <th>الربح</th>
+                            <th>صورة الموازنة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTableBody">
+                        <!-- سيتم ملؤه ديناميكياً -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3>تسجيل دخول الإدارة</h3>
+            <div class="password-input">
+                <input type="password" id="adminPassword" placeholder="أدخل كلمة المرور" style="width: 100%;">
+            </div>
+            <button class="btn" onclick="loginAdmin()">دخول</button>
+            <button class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
+            <p id="loginError" style="color: red; margin-top: 10px; display: none;">كلمة المرور غير صحيحة!</p>
+        </div>
+    </div>
+
+    <script>
+        // بيانات التخزين
+        const ADMIN_PASSWORD = 'admin123'; // يمكنك تغيير كلمة المرور هنا
+        const STORAGE_KEY = 'salesReports';
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // تعبئة الفلاتر بقيم افتراضية
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filterStartDate').value = today;
+            document.getElementById('filterEndDate').value = today;
+        });
+
+        // معالجة إرسال النموذج
+        document.getElementById('salesForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('ar-SA'),
+                time: new Date().toLocaleTimeString('ar-SA'),
+                employeeName: document.getElementById('employeeName').value,
+                branch: document.getElementById('branch').value,
+                cashRevenue: parseFloat(document.getElementById('cashRevenue').value),
+                networkRevenue: parseFloat(document.getElementById('networkRevenue').value),
+                currentCash: parseFloat(document.getElementById('currentCash').value),
+                profit: parseFloat(document.getElementById('profit').value),
+                balanceImage: document.getElementById('balanceImage').dataset.image || null
+            };
+            
+            // حفظ التقرير
+            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            reports.push(formData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+            
+            alert('تم إرسال التقرير بنجاح!');
+            clearForm();
+        });
+
+        // معاينة الصورة
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('balanceImage').dataset.image = e.target.result;
+                    document.getElementById('imagePreview').innerHTML = 
+                        `<img src="${e.target.result}" class="image-preview" alt="صورة الموازنة">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // مسح النموذج
+        function clearForm() {
+            document.getElementById('salesForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('balanceImage').dataset.image = '';
+        }
+
+        // فتح نافذة تسجيل الدخول
+        function openAdminLogin() {
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').focus();
+        }
+
+        // تسجيل الدخول
+        function loginAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('formSection').classList.add('hidden');
+                document.getElementById('adminSection').classList.remove('hidden');
+                loadReports();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        // إغلاق النافذة
+        function closeModal() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginError').style.display = 'none';
+        }
+
+        // تسجيل الخروج
+        function logout() {
+            document.getElementById('adminSection').classList.add('hidden');
+            document.getElementById('formSection').classList.remove('hidden');
+        }
+
+        // تحميل التقارير
+        function loadReports(filters = {}) {
+            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            // تطبيق الفلاتر
+            if (filters.startDate) {
+                reports = reports.filter(r => new Date(r.date) >= new Date(filters.startDate));
+            }
+            if (filters.endDate) {
+                reports = reports.filter(r => new Date(r.date) <= new Date(filters.endDate));
+            }
+            if (filters.branch) {
+                reports = reports.filter(r => r.branch === filters.branch);
+            }
+            if (filters.employee) {
+                reports = reports.filter(r => r.employeeName.includes(filters.employee));
+            }
+            
+            // عرض التقارير
+            const tbody = document.getElementById('reportsTableBody');
+            tbody.innerHTML = '';
+            
+            let totalCash = 0, totalNetwork = 0, totalProfit = 0;
+            
+            reports.forEach(report => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${report.date}</td>
+                    <td>${report.time}</td>
+                    <td>${report.employeeName}</td>
+                    <td>${report.branch}</td>
+                    <td>${report.cashRevenue.toFixed(2)}</td>
+                    <td>${report.networkRevenue.toFixed(2)}</td>
+                    <td>${report.currentCash.toFixed(2)}</td>
+                    <td>${report.profit.toFixed(2)}</td>
+                    <td>${report.balanceImage ? `<img src="${report.balanceImage}" class="image-preview" onclick="window.open('${report.balanceImage}')">` : 'لا توجد'}</td>
+                `;
+                
+                totalCash += report.cashRevenue;
+                totalNetwork += report.networkRevenue;
+                totalProfit += report.profit;
+            });
+            
+            // عرض الإجماليات
+            document.getElementById('totals').classList.remove('hidden');
+            document.getElementById('totalCash').textContent = `إجمالي الكاش: ${totalCash.toFixed(2)}`;
+            document.getElementById('totalNetwork').textContent = `إجمالي الشبكة: ${totalNetwork.toFixed(2)}`;
+            document.getElementById('totalProfit').textContent = `إجمالي الربح: ${totalProfit.toFixed(2)}`;
+        }
+
+        // تطبيق الفلاتر
+        function applyFilters() {
+            const filters = {
+                startDate: document.getElementById('filterStartDate').value,
+                endDate: document.getElementById('filterEndDate').value,
+                branch: document.getElementById('filterBranch').value,
+                employee: document.getElementById('filterEmployee').value
+            };
+            loadReports(filters);
+        }
+
+        // إعادة تعيين الفلاتر
+        function resetFilters() {
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('filterBranch').value = '';
+            document.getElementById('filterEmployee').value = '';
+            loadReports();
+        }
+
+        // تصدير إلى Excel
+        function exportToExcel() {
+            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            // تطبيق الفلاتر الحالية
+            const filters = {
+                startDate: document.getElementById('filterStartDate').value,
+                endDate: document.getElementById('filterEndDate').value,
+                branch: document.getElementById('filterBranch').value,
+                employee: document.getElementById('filterEmployee').value
+            };
+            
+            if (filters.startDate) {
+                reports = reports.filter(r => new Date(r.date) >= new Date(filters.startDate));
+            }
+            if (filters.endDate) {
+                reports = reports.filter(r => new Date(r.date) <= new Date(filters.endDate));
+            }
+            if (filters.branch) {
+                reports = reports.filter(r => r.branch === filters.branch);
+            }
+            if (filters.employee) {
+                reports = reports.filter(r => r.employeeName.includes(filters.employee));
+            }
+            
+            // إعداد البيانات
+            const data = reports.map(r => ({
+                'التاريخ': r.date,
+                'الوقت': r.time,
+                'اسم الموظف': r.employeeName,
+                'الفرع': r.branch,
+                'الكاش': r.cashRevenue,
+                'الشبكة': r.networkRevenue,
+                'الكاش الحالي': r.currentCash,
+                'الربح': r.profit
+            }));
+            
+            // إنشاء Excel
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'تقارير المبيعات');
+            
+            // تحميل الملف
+            XLSX.writeFile(wb, `تقارير_المبيعات_${new Date().toLocaleDateString('ar-SA')}.xlsx`);
+        }
+
+        // إغلاق النافذة بالضغط على ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
